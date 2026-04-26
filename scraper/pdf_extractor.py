@@ -8,6 +8,7 @@ log = logging.getLogger(__name__)
 
 SKIP_PAGES = 2
 MAX_CONTENT_PAGES = 8
+TAIL_PAGES = 4
 TESSERACT_CONFIG = "--psm 1 -l eng"
 RASTERIZE_DPI = 300
 DOWNLOAD_TIMEOUT = 60
@@ -61,20 +62,26 @@ def ocr_pdf(pdf_bytes: bytes, skip: int = SKIP_PAGES, max_pages: int = MAX_CONTE
     if not pages_text:
         raise ValueError("OCR returned no text. The PDF may be too low quality or Tesseract is not installed.")
 
-    last_page_idx = total_pages - 1
-    content_window_end = skip + max_pages - 1
-    last_page_text = ""
+    # Scan the last pages for endorser/date and skip any that were already OCR'd in the content window to avoid duplicate submission.
+    content_window_indices = set(range(skip, skip + max_pages))
+    tail_start = max(skip + max_pages, total_pages - TAIL_PAGES)
+    tail_indices = [i for i in range(tail_start, total_pages) if i not in content_window_indices]
 
-    if last_page_idx > content_window_end:
-        log.info("Last page (%d) is outside content window — OCR'ing for endorser/date", total_pages)
-        last_page_text = ocr_page(images[last_page_idx], total_pages)
-        if last_page_text:
-            pages_text.append(f"[Last page — endorser/date]\n{last_page_text.split(chr(10), 1)[-1]}")
+    tail_texts = []
+    for i in tail_indices:
+        ocrd = ocr_page(images[i], i + 1)
+        if ocrd:
+            tail_texts.append(ocrd)
+        else:
+            log.warning("Tail page %d returned empty OCR output — skipping", i + 1)
+
+    if tail_texts:
+        pages_text.append(f"[Tail pages — endorser/date]\n" + "\n\n".join(tail_texts))
+        log.info("Tail scan: %d page(s) OCR'd outside content window", len(tail_indices))
     else:
-        last_page_text = pages_text[-1]
-        log.info("Last page already within content window — no extra OCR needed")
+        log.info("Tail pages either already in content window or returned no text")
 
-    pages_read = len(content_images) + (1 if last_page_idx > content_window_end else 0)
+    pages_read = len(content_images) + len(tail_indices)
     log.info("OCR complete: %d page(s) read, ~%d characters extracted", pages_read, sum(len(t) for t in pages_text))
 
     return {
@@ -82,7 +89,7 @@ def ocr_pdf(pdf_bytes: bytes, skip: int = SKIP_PAGES, max_pages: int = MAX_CONTE
         "page_count": total_pages,
         "pages_read": pages_read,
         "skipped": skip,
-        "last_page": last_page_text,
+        "tail_text": "\n\n".join(tail_texts) if tail_texts else "",
     }
 
 

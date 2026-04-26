@@ -31,13 +31,14 @@ def build_html(summary: dict, pdf_url: str) -> str:
     key_changes_html = "".join(
         f"<li>{change}</li>\n" for change in (summary.get("key_changes") or [])
     )
-    title    = summary.get("title")           or "Untitled Bill"
-    date     = summary.get("date")            or "Date unknown"
-    endorser = summary.get("endorser")        or "Unknown"
-    argument = summary.get("argument")        or "—"
-    proposal = summary.get("proposal")        or "—"
-    affected = summary.get("who_is_affected") or "—"
-    today    = datetime.now().strftime("%B %d, %Y")
+    title           = summary.get("title")           or "Untitled Bill"
+    gazette_date    = summary.get("gazette_date")    or "Unknown"
+    endorsement_date = summary.get("endorsement_date") or "Unknown"
+    endorser        = summary.get("endorser")        or "Not specified"
+    argument        = summary.get("argument")        or "—"
+    proposal        = summary.get("proposal")        or "—"
+    affected        = summary.get("who_is_affected") or "—"
+    today           = datetime.now().strftime("%B %d, %Y")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -63,8 +64,12 @@ def build_html(summary: dict, pdf_url: str) -> str:
         <table cellpadding="0" cellspacing="0">
           <tr>
             <td style="padding-right:32px;">
-              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Date Introduced</p>
-              <p style="margin:4px 0 0;font-size:13px;color:#111;font-weight:600;">{date}</p>
+              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Gazette Date</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#111;font-weight:600;">{gazette_date}</p>
+            </td>
+            <td style="padding-right:32px;">
+              <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Endorsement Date</p>
+              <p style="margin:4px 0 0;font-size:13px;color:#111;font-weight:600;">{endorsement_date}</p>
             </td>
             <td>
               <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px;">Endorsed By</p>
