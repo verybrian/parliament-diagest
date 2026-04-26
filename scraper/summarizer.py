@@ -13,12 +13,13 @@ PROMPT_TEMPLATE = textwrap.dedent("""
     Your job is to read the extracted text of a bill and return a concise, plain-English
     summary in JSON format.
 
-    The JSON must have exactly these 7 fields:
+    The JSON must have exactly these 8 fields:
 
     {{
         "title": "Full official title of the bill",
-        "date": "Date the bill was published or introduced, as it appears in the document",
-        "endorser": "Name and title of the person who signed/endorsed the bill",
+        "gazette_date": "The date on the gazette cover page (page 1), as it appears in the document",
+        "endorsement_date": "The date the bill was signed/endorsed, found near the endorser's name — usually on one of the last pages. Use null if not found.",
+        "endorser": "Name and title of the person or ministry that signed or sponsored the bill. Look near the bottom of the last pages. Use null if not found.",
         "argument": "1-2 sentences on the problem or situation this bill is responding to",
         "proposal": "1-2 sentences on what the bill proposes to do about it",
         "who_is_affected": "1-2 sentences on who will be impacted — citizens, businesses, county governments, etc.",
@@ -33,6 +34,7 @@ PROMPT_TEMPLATE = textwrap.dedent("""
     - Use plain English — no legal jargon. Write as if explaining to a friend.
     - Keep each field brief. The whole summary should fit comfortably in an email.
     - key_changes should be 3-6 bullet points maximum, each one sentence.
+    - For endorser: look for a name followed by a title (e.g. "Member of Parliament", "Cabinet Secretary", "Leader of Majority Party"). If only a ministry is mentioned with no individual name, use the ministry name.
     - If a field cannot be determined from the text, use null.
     - Return ONLY the JSON object. No markdown, no code fences, no explanation.
 
@@ -75,7 +77,7 @@ def summarize(extracted: dict) -> dict:
         log.error("Gemini returned non-JSON output:\n%s", raw)
         raise ValueError(f"Could not parse Gemini response as JSON: {e}") from e
 
-    for field in ["title", "date", "endorser", "argument", "proposal", "who_is_affected", "key_changes"]:
+    for field in ["title", "gazette_date", "endorsement_date", "endorser", "argument", "proposal", "who_is_affected", "key_changes"]:
         summary.setdefault(field, None)
 
     log.info("Summary parsed — title: %s", summary.get("title"))
