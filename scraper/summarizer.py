@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import textwrap
-import google.generativeai as genai
+from google import genai
 
 log = logging.getLogger(__name__)
 
